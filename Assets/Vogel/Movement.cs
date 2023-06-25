@@ -8,14 +8,22 @@ public class Movement : MonoBehaviour
     public float throttleIncremnet = 0.1f;
     public float maxThrust = 200f;
     public float responsiveness = 10f;
+    public Animator animator;
 
     public float lift = 50f;
-
 
     private float throttle;
     private float roll;
     private float pitch;
     private float yaw;
+
+    private bool isStarted;
+
+
+
+    Rigidbody rb;
+    private bool isGravityEnabled = true;
+
 
     private float responseModifier
     {
@@ -25,10 +33,9 @@ public class Movement : MonoBehaviour
         }
     }
 
-    Rigidbody rb;
-
     private void Awake()
     {
+        animator = GetComponent<Animator>();    
         rb = GetComponent<Rigidbody>();
     }
 
@@ -38,8 +45,28 @@ public class Movement : MonoBehaviour
         pitch = Input.GetAxis("Pitch");
         yaw = Input.GetAxis("Yaw");
 
-        if (Input.GetKey(KeyCode.Space)) throttle += throttleIncremnet;
-        else if (Input.GetKey(KeyCode.LeftControl)) throttle -= throttleIncremnet;
+        if (Input.GetKey(KeyCode.LeftShift))
+        {
+            throttle += throttleIncremnet;
+            if(!isStarted)
+            {
+                animator.SetBool("isStarting", true);
+                isStarted = true;
+            }
+            animator.SetBool("isFlying", true);
+            animator.SetBool("isGleiding", false);
+        }
+
+        if (Input.GetKey(KeyCode.C))
+        {
+            throttle -= throttleIncremnet;
+            animator.SetBool("isFlying", false);
+            animator.SetBool("isGleiding", true);
+
+        }
+        if (Input.GetKeyDown(KeyCode.G)) ToggleGravity();
+
+
         throttle = Mathf.Clamp(throttle, 0f , 100f);
     }
 
@@ -50,12 +77,18 @@ public class Movement : MonoBehaviour
 
     private void FixedUpdate()
     {
-        rb.AddForce(transform.forward * maxThrust * throttle);
+        rb.AddForce(-transform.right * maxThrust * throttle);
         rb.AddTorque(transform.up * yaw * responseModifier);
         rb.AddTorque(transform.right * roll * responseModifier);
-        rb.AddTorque(-transform.forward * pitch * responseModifier);
+        rb.AddTorque(-transform.forward *  pitch * responseModifier);
 
         rb.AddForce(Vector3.up * rb.velocity.magnitude * lift);
+    }
+
+    private void ToggleGravity()
+    {
+        isGravityEnabled = !isGravityEnabled;
+        rb.useGravity = isGravityEnabled;
     }
 
 }
